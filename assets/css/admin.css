@@ -1,0 +1,169 @@
+/* ===== Base wrapper (original) ===== */
+.crm-admin-wrap {
+    direction: rtl;
+    text-align: right;
+}
+
+/* ===== Badges (original) ===== */
+.crm-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.crm-badge-pending {
+    background-color: #f0ad4e;
+    color: #fff;
+}
+
+.crm-badge-approved {
+    background-color: #5cb85c;
+    color: #fff;
+}
+
+.crm-badge-disapproved {
+    background-color: #d9534f;
+    color: #fff;
+}
+
+.crm-text-green {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.crm-text-red {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.crm-retry-otp-btn {
+    margin-right: 5px !important;
+}
+
+.crm-admin-wrap code {
+    direction: ltr;
+    display: inline-block;
+    font-weight: bold;
+    font-size: 13px;
+}
+
+/* =========================================================
+   WP_List_Table fixes:
+   - Horizontal scrollbar placed on TOP of table (rotateX trick)
+   - No truncation (no "...")
+   - Actions column stays inside the table
+   Applies to: coupons table, requests table, events table
+   ========================================================= */
+
+/* Make the table the scroll container AND flip it so scrollbar is at the TOP */
+.crm-admin-wrap .wp-list-table {
+    direction: rtl;
+    table-layout: auto;
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+
+    /* Flip container so scrollbar moves to top */
+    transform: rotateX(180deg);
+}
+
+/* Flip the content back upright so text/buttons render normally */
+.crm-admin-wrap .wp-list-table thead,
+.crm-admin-wrap .wp-list-table tbody,
+.crm-admin-wrap .wp-list-table tfoot {
+    width: max-content;
+    min-width: 100%;
+    transform: rotateX(180deg);
+}
+
+/* Default cell behavior: show full content (no ellipsis) */
+.crm-admin-wrap .wp-list-table th,
+.crm-admin-wrap .wp-list-table td {
+    text-align: right;
+    vertical-align: middle;
+    white-space: nowrap;
+    overflow: visible;
+    text-overflow: clip;
+}
+
+/* Usually the ID column is narrow and centered */
+.crm-admin-wrap .wp-list-table th.column-id,
+.crm-admin-wrap .wp-list-table td.column-id {
+    text-align: center;
+    width: 50px;
+    min-width: 50px;
+}
+
+/* عملیات column: keep buttons inside table; consistent width */
+.crm-admin-wrap .wp-list-table th.column-actions,
+.crm-admin-wrap .wp-list-table td.column-actions {
+    width: 220px;
+    min-width: 220px;
+    max-width: 220px;
+    text-align: right;
+    white-space: normal;
+    overflow: visible;
+}
+
+/* Make all buttons consistent size across all tables */
+.crm-admin-wrap .wp-list-table .button,
+.crm-admin-wrap .wp-list-table a.button,
+.crm-admin-wrap .wp-list-table .button.button-small {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 30px;
+    padding: 0 10px;
+    line-height: 28px;
+    box-sizing: border-box;
+    margin: 2px 0 2px 6px;
+    max-width: 100%;
+}
+
+/* Long Persian labels should wrap inside the button, not overflow */
+.crm-admin-wrap .wp-list-table td.column-actions .button {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    height: auto;
+    min-height: 30px;
+}
+
+/* Give the events table the same full-width list area as coupons. */
+.crm-admin-wrap .crm-admin-columns {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.crm-admin-wrap .crm-admin-column-form {
+    width: 100%;
+    max-width: 580px;
+    background: #fff;
+    border: 1px solid #dce2e8;
+    border-radius: 8px;
+    padding: 18px;
+    box-sizing: border-box;
+}
+
+.crm-admin-wrap .crm-admin-column-table {
+    width: 100%;
+    min-width: 0;
+}
+
+.crm-admin-wrap .crm-admin-column-table .search-box input[type="search"] {
+    min-width: 240px;
+}
+
+/* Give event name columns more breathing room */
+.crm-admin-wrap .wp-list-table th.column-name,
+.crm-admin-wrap .wp-list-table td.column-name,
+.crm-admin-wrap .wp-list-table th.column-event_name,
+.crm-admin-wrap .wp-list-table td.column-event_name {
+    min-width: 320px;
+}

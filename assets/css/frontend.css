@@ -1,0 +1,346 @@
+/* Container */
+.crm-container {
+    direction: rtl;
+    text-align: right;
+    font-family: inherit;
+    box-sizing: border-box;
+    display: inline-block;
+}
+
+.crm-container * {
+    box-sizing: border-box;
+}
+
+/* Open Modal Trigger Button */
+#crm-open-modal-btn,
+.crm-btn-primary {
+    display: inline-block;
+    background-color: #2271b1;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 20px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+#crm-open-modal-btn:hover,
+.crm-btn-primary:hover {
+    background-color: #135e96;
+    color: #fff;
+}
+
+#crm-open-modal-btn:active,
+.crm-btn-primary:active {
+    transform: scale(0.98);
+}
+
+/* Modal Backdrop */
+.crm-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(2px);
+    z-index: 999999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+/* Modal Content Box */
+.crm-modal-content {
+    background: #ffffff;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 440px;
+    padding: 30px 25px;
+    position: relative;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    animation: crmFadeSlideIn 0.25s ease-out;
+    direction: rtl;
+    text-align: right;
+}
+
+@keyframes crmFadeSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Close Button (×) */
+.crm-modal-close,
+#crm-close-modal-btn {
+    position: absolute;
+    top: 15px;
+    left: 18px;
+    font-size: 26px;
+    line-height: 1;
+    color: #8c8f94;
+    cursor: pointer;
+    font-weight: bold;
+    border: none;
+    background: transparent;
+    padding: 0;
+    transition: color 0.15s ease;
+    user-select: none;
+}
+
+.crm-modal-close:hover,
+#crm-close-modal-btn:hover {
+    color: #d63638;
+}
+
+/* Modal Headings & Text */
+.crm-modal-content h2 {
+    margin: 0 0 10px 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #1d2327;
+    line-height: 1.4;
+}
+
+.crm-event-info {
+    margin: 0 0 20px 0;
+    font-size: 14px;
+    color: #50575e;
+    background: #f0f6fc;
+    border: 1px solid #cce5ff;
+    padding: 8px 12px;
+    border-radius: 6px;
+}
+
+.crm-event-info strong {
+    color: #0073aa;
+}
+
+/* Form Groups & Inputs */
+.crm-form-group {
+    margin-bottom: 18px;
+}
+
+.crm-form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #2c3338;
+}
+
+.crm-form-group input[type="tel"],
+.crm-form-group input[type="text"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid #8c8f94;
+    border-radius: 6px;
+    font-size: 16px;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    direction: ltr !important;
+    text-align: left !important;
+}
+
+.crm-form-group input[type="tel"]:focus,
+.crm-form-group input[type="text"]:focus {
+    border-color: #2271b1;
+    box-shadow: 0 0 0 2px rgba(34, 113, 177, 0.2);
+}
+
+/* Submit Button */
+#crm-submit-btn,
+.crm-btn-submit {
+    width: 100%;
+    background-color: #008a20;
+    color: #ffffff;
+    border: none;
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease, opacity 0.2s ease;
+}
+
+#crm-submit-btn:hover,
+.crm-btn-submit:hover {
+    background-color: #007017;
+}
+
+#crm-submit-btn:disabled,
+.crm-btn-submit:disabled {
+    background-color: #a7aaad !important;
+    cursor: not-allowed;
+    opacity: 0.8;
+}
+
+/* Messages (Success & Error) */
+#crm-form-message,
+.crm-message {
+    margin-top: 15px;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    line-height: 1.5;
+    text-align: right;
+    display: none;
+}
+
+#crm-form-message.success {
+    display: block !important;
+    background-color: #edfaef;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+#crm-form-message.error {
+    display: block !important;
+    background-color: #fcf0f1;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+/* No Event Box */
+.crm-no-event {
+    direction: rtl;
+    padding: 12px 16px;
+    background: #fff8e5;
+    border: 1px solid #ffe89e;
+    color: #856404;
+    border-radius: 6px;
+    font-size: 14px;
+}
+/* ... تمام استایل‌های قبلی شما تا خط آخر ... */
+
+/* تغییرات جدید */
+
+/* 1. عنوان کوچک‌تر */
+.crm-modal-content h2 {
+    font-size: 16px !important;
+}
+
+/* 2. رنگ دکمه جدید */
+#crm-submit-btn,
+.crm-btn-submit {
+    background-color: #0d2846 !important;
+}
+
+#crm-submit-btn:hover,
+.crm-btn-submit:hover {
+    background-color: #e8cd8f !important;
+    color: #0d2846 !important; /* متن تیره روی پس‌زمینه روشن */
+}
+
+/* 3. استایل ریسپانسیو */
+@media (max-width: 480px) {
+    .crm-modal-content {
+        width: 95% !important;
+        padding: 20px !important;
+    }
+}
+
+/* 4. اسپینر لودینگ */
+.crm-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255,255,255,.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: crm-spin 0.8s linear infinite;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+@keyframes crm-spin { to { transform: rotate(360deg); } }
+.crm-modal-icon {
+    display: flex;
+    justify-content: center;
+    margin: 0 auto -10px;
+}
+
+
+/* ==========================================
+   Success Animated Checkmark & UI Elements
+   ========================================== */
+
+.crm-success-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 25px 15px 15px;
+  animation: crmFadeSlideIn 0.3s ease-out;
+}
+
+.crm-success-icon-box {
+  width: 100px;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 15px;
+}
+
+.crm-checkmark-svg {
+  width: 100px;
+  height: 100px;
+  overflow: visible;
+}
+
+/* رسم دایره سبز دور تیک */
+.crm-svg-circle {
+  stroke: #28a745;
+  stroke-width: 4;
+  fill: none;
+  stroke-linecap: round;
+  stroke-dasharray: 260;
+  stroke-dashoffset: 260;
+  animation: crmDrawCircle 0.6s ease-out forwards;
+}
+
+/* رسم شکل تیک (Checkmark) */
+.crm-svg-check {
+  stroke: #28a745;
+  stroke-width: 6;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 80;
+  stroke-dashoffset: 80;
+  animation: crmDrawCheck 0.35s ease-out 0.45s forwards;
+}
+
+/* متن پیام موفقیت */
+.crm-success-text {
+  font-size: 15px;
+  line-height: 1.8;
+  color: #2c3e50;
+  font-weight: 600;
+  max-width: 360px;
+  margin: 10px auto 0;
+  text-align: center;
+}
+
+@keyframes crmDrawCircle {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes crmDrawCheck {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+

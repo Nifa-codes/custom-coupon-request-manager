@@ -1,0 +1,44 @@
+.crm-manager { direction: rtl; text-align: right; color: #0d2846; font-family: inherit; max-width: 1000px; margin: 1.5rem auto; }
+.crm-manager * { box-sizing: border-box; }
+.crm-manager [hidden] { display: none !important; }
+.crm-manager-login, .crm-manager-panel { background: #fff; border: 1px solid #dce2e8; border-radius: 12px; padding: 1rem; box-shadow: 0 4px 18px #0d284612; }
+.crm-manager-login { max-width: 420px; margin: auto; }
+.crm-manager h2 { color: #0d2846; margin: 0 0 1rem; }
+.crm-manager form label { display: block; font-weight: 600; margin: .8rem 0 .3rem; }
+.crm-manager input, .crm-manager select { min-width: 0; width: 100%; padding: .65rem; border: 1px solid #8b99a8; border-radius: 6px; background: #fff; color: #0d2846; font: inherit; }
+.crm-manager input[dir=ltr], .crm-manager-ltr { direction: ltr; unicode-bidi: isolate; text-align: left; }
+.crm-manager button { border: 1px solid #0d2846; border-radius: 6px; padding: .65rem 1rem; background: #0d2846; color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+.crm-manager button:hover, .crm-manager button:focus-visible { background: #e8cd8f; border-color: #e8cd8f; color: #0d2846; }
+.crm-manager button:disabled { opacity: .55; cursor: wait; }
+.crm-manager .crm-manager-secondary { background: #fff; color: #0d2846; }
+.crm-manager-login form button { margin-top: .8rem; }
+.crm-manager-header { display: flex; align-items: center; justify-content: flex-end; gap: 1rem; }
+.crm-manager-tabs { display: flex; gap: .4rem; overflow-x: auto; margin: 1rem 0; border-bottom: 1px solid #dce2e8; padding-bottom: .4rem; }
+.crm-manager-tabs button { white-space: nowrap; background: #eef1f4; color: #0d2846; }
+.crm-manager-tabs button.active { background: #0d2846; color: #fff; }
+.crm-manager-counts { display: grid; grid-template-columns: repeat(2, 1fr); gap: .7rem; }
+.crm-manager-counts div { border: 1px solid #dce2e8; border-radius: 8px; padding: 1rem; display: grid; gap: .3rem; }
+.crm-manager-counts strong { font-size: 1.7rem; }
+.crm-manager-filters { display: grid; gap: .6rem; margin-bottom: 1rem; }
+.crm-manager-table-scroll { width: 100%; overflow-x: auto; border: 1px solid #dce2e8; border-radius: 8px; }
+.crm-manager-table { width: 100%; min-width: 690px; border-collapse: collapse; table-layout: auto; }
+.crm-manager-table th, .crm-manager-table td { padding: .8rem .7rem; text-align: right; vertical-align: middle; border-bottom: 1px solid #e2e6eb; white-space: nowrap; }
+.crm-manager-table th { background: #0d2846; color: #fff; font-weight: 600; }
+.crm-manager-table tbody tr:last-child td { border-bottom: 0; }
+.crm-manager-table tbody tr:nth-child(even) { background: #f7f9fb; }
+.crm-manager-table td:first-child { white-space: normal; min-width: 115px; }
+.crm-manager-actions { min-width: 150px; }
+.crm-manager-actions button { margin: .15rem; padding: .45rem .7rem; white-space: nowrap; }
+.crm-manager-status-approved, .crm-manager-status-used { color: #16703e; font-weight: 700; }
+.crm-manager-status-disapproved { color: #b42330; font-weight: 700; }
+.crm-manager-otp-success { display: flex; align-items: center; gap: .8rem; margin: 1rem 0; padding: .9rem; border: 1px solid #a6d5b6; border-radius: 8px; background: #eef9f1; color: #165c30; }
+.crm-manager-otp-success p { margin: .2rem 0 0; font-size: .9rem; }
+.crm-manager-success-icon { display: grid; place-items: center; flex: 0 0 2rem; width: 2rem; height: 2rem; border-radius: 50%; background: #16703e; color: white; font-weight: bold; }
+.crm-manager-spinner { display: none; width: 16px; height: 16px; border: 2px solid #ffffff88; border-top-color: #fff; border-radius: 50%; animation: crm-manager-spin .7s linear infinite; margin-left: .5rem; vertical-align: middle; }
+.crm-manager-send-code.is-loading .crm-manager-spinner { display: inline-block; }
+@keyframes crm-manager-spin { to { transform: rotate(360deg); } }
+.crm-manager-toast { position: fixed; z-index: 99999; top: 24px; right: 24px; max-width: min(380px, calc(100vw - 32px)); padding: 1rem 1.2rem; border-radius: 10px; background: #0d2846; color: #fff; box-shadow: 0 8px 28px #0d284655; direction: rtl; text-align: right; border-right: 5px solid #e8cd8f; }
+.crm-manager-toast[hidden] { display: none !important; }
+.crm-manager-message { min-height: 1.5em; color: #165c30; }
+.crm-manager-message.error { color: #9b2226; }
+@media (min-width: 700px) { .crm-manager-login, .crm-manager-panel { padding: 1.5rem; } .crm-manager-counts { grid-template-columns: repeat(4, 1fr); } .crm-manager-filters { grid-template-columns: 2fr 1fr 1fr auto; align-items: end; } .crm-manager-coupon-filter { grid-template-columns: 2fr 1fr auto; } }
