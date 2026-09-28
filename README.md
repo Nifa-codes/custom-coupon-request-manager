@@ -68,7 +68,7 @@ Coupon Request Manager turns a simple "get a discount code" button on your site 
 - **Dashboard counters:** pending requests, approved requests, unused coupons, coupons used today.
 - **Requests tab:** search by customer phone, filter by status and date, approve or reject.
 - **Coupons tab:** search by coupon code or customer phone, filter used/unused, **mark as used** with one tap.
-- **Multiple managers per event.** Every assigned manager receives the coupon SMS and can log in; each sees only the events they are assigned to.
+- **Multiple managers per event:** Every assigned manager receives the coupon SMS and can log in; each sees only the events they are assigned to.
 
 ### Under the hood
 - Server-side ownership checks on every manager action — knowing an ID is never enough.
@@ -374,16 +374,6 @@ Approve, reject and mark-used are implemented once and shared by the admin scree
 
 Restoring a backup can leave `crm_db_version` at a value that no longer reflects the tables. To force the migration to run again: in `wp_options`, delete the row where `option_name = 'crm_db_version'`, then load any page on the site once. Verify that all seven tables exist and that `coupon_manager_audit` has an `actor_identifier` column.
 
-### The manager receives no SMS, but the panel says "sent successfully"
-
-The gateway accepted the request; delivery is a separate step on the provider's side. Check, in order:
-
-1. The template is **approved** in the Melipayamak panel.
-2. The number of placeholders in the pattern matches what the plugin sends (the login template takes exactly one).
-3. The template ID saved in the settings is the *login* template, not one of the other two.
-4. The message's delivery status in Melipayamak's SMS report.
-
-Gateway errors on the request itself are written to the PHP error log — enable `WP_DEBUG` and `WP_DEBUG_LOG` and check `wp-content/debug.log`.
 
 ### "کد منقضی شده یا تعداد تلاش‌ها تمام شده است" (code expired or attempts exhausted)
 
@@ -429,7 +419,6 @@ Ideas under consideration, not commitments:
 
 - [ ] Internationalization (`.pot` file, translatable strings)
 - [ ] Admin screen for the audit log
-- [ ] Credentials via `wp-config.php` constants instead of the database
 - [ ] Optional data cleanup on uninstall
 - [ ] Rate limiting / CAPTCHA for the customer request form
 - [ ] CSV export of requests and coupons
@@ -466,9 +455,6 @@ When reporting a bug, please include your PHP, WordPress and MySQL/MariaDB versi
 
 ---
 
-## License
-
-_Add your license here — WordPress plugins are conventionally released under **GPL-2.0-or-later**. Include the license text in a `LICENSE` file at the repository root and update this section (and the plugin header) to match._
 
 ## Credits
 
