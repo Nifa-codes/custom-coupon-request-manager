@@ -344,3 +344,56 @@
   }
 }
 
+
+
+/* ==========================================
+   Modal-only shortcode [coupon_request_modal]
+   ========================================== */
+
+/* The modal is moved to <body>, so it needs its own base rules */
+.crm-modal,
+.crm-modal * {
+    box-sizing: border-box;
+}
+
+.crm-modal {
+    font-family: inherit;
+}
+
+/* Lock page scroll while the modal is open */
+body.crm-modal-open {
+    overflow: hidden;
+}
+
+/* Anything that opens the modal should look clickable */
+.crm-open-modal,
+a[href="#crm-open-modal"] {
+    cursor: pointer;
+}
+
+/* OPTIONAL: add this class to a plain button/link to get the plugin's look
+   (same colours as the submit button) */
+.crm-trigger-btn {
+    display: inline-block;
+    background-color: #0d2846;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 22px;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.4;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
+}
+
+.crm-trigger-btn:hover,
+.crm-trigger-btn:focus {
+    background-color: #e8cd8f;
+    color: #0d2846;
+}
+
+.crm-trigger-btn:active {
+    transform: scale(0.98);
+}

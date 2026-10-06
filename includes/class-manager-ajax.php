@@ -15,6 +15,7 @@ class CRM_Manager_Ajax
             'get_requests',
             'approve_request',
             'disapprove_request',
+            'set_auto_approve',
             'get_coupons',
             'mark_coupon_used',
         ];
@@ -67,7 +68,7 @@ class CRM_Manager_Ajax
             if ($limits['count'] >= 7) {
                 wp_send_json_error(['message' => 'سقف هفت درخواست در ساعت پر شده است.'], 429);
             }
-            if ($limits['latest'] && strtotime($limits['latest']) > strtotime(current_time('mysql')) - 60) {
+            if ($limits['latest'] && strtotime($limits['latest']) > strtotime(CRM_DB::sql_now()) - 60) {
                 wp_send_json_error(['message' => 'برای ارسال دوباره، ۶۰ ثانیه صبر کنید.'], 429);
             }
             $body_id = (string) get_option('crm_melipayamak_body_id_manager_otp', '');
@@ -82,6 +83,11 @@ class CRM_Manager_Ajax
             $sent = (new CRM_Melipayamak())->sendOtp($phone, $body_id, $args);
             if (!$sent) {
                 CRM_DB::invalidate_manager_otps($phone, $id);
+                $events = CRM_DB::get_events_for_manager_phone($phone);
+                CRM_DB::insert_manager_audit($phone, $events ? (int) $events[0]->id : null, 'sms_failed', 'manager', null, [
+                    'manager_phone' => $phone,
+                    'context' => 'manager_otp',
+                ]);
                 wp_send_json_error(['message' => 'ارسال پیامک ناموفق بود.'], 502);
             }
             wp_send_json_success(['message' => 'کد ورود ارسال شد.']);
@@ -111,15 +117,22 @@ class CRM_Manager_Ajax
         $token = bin2hex(random_bytes(32));
         if (!CRM_DB::create_manager_session($phone, $token)) wp_send_json_error(['message' => 'ایجاد نشست ناموفق بود.'], 500);
         self::cookie($token, time() + DAY_IN_SECONDS);
+        $events = CRM_DB::get_events_for_manager_phone($phone);
+        CRM_DB::insert_manager_audit($phone, $events ? (int) $events[0]->id : null, 'manager_login', 'manager', null, ['manager_phone' => $phone]);
         wp_send_json_success(['message' => 'ورود موفق بود.']);
     }
 
     public static function logout(): void
     {
         check_ajax_referer('crm_manager_nonce', 'nonce');
+        $phone = self::session_phone();
         $token = isset($_COOKIE[self::COOKIE]) && is_string($_COOKIE[self::COOKIE]) ? $_COOKIE[self::COOKIE] : '';
         CRM_DB::delete_manager_session($token);
         self::cookie('', time() - HOUR_IN_SECONDS);
+        if ($phone) {
+            $events = CRM_DB::get_events_for_manager_phone($phone);
+            CRM_DB::insert_manager_audit($phone, $events ? (int) $events[0]->id : null, 'manager_logout', 'manager', null, ['manager_phone' => $phone]);
+        }
         wp_send_json_success(['message' => 'خارج شدید.']);
     }
 
@@ -135,7 +148,18 @@ class CRM_Manager_Ajax
         $search = isset($_POST['search']) ? sanitize_text_field(wp_unslash($_POST['search'])) : '';
         $status = isset($_POST['status']) ? sanitize_key(wp_unslash($_POST['status'])) : '';
         $date = isset($_POST['date']) ? sanitize_text_field(wp_unslash($_POST['date'])) : '';
-        wp_send_json_success(['rows' => CRM_DB::get_manager_requests($phone, $search, $status, $date)]);
+        if ($date !== '') {
+            // The picker sends "1405-07-09 23:59"; to_sql() needs a time, so add one if it's missing.
+            $sql_date = CRM_Jalali_Date::to_sql(strpos($date, ':') === false ? $date . ' 00:00' : $date);
+            if ($sql_date === null) {
+                wp_send_json_error(['message' => 'تاریخ شمسی معتبر نیست.'], 400);
+            }
+            $date = substr($sql_date, 0, 10); // Gregorian Y-m-d for the existing SQL filter
+        }
+        wp_send_json_success([
+            'rows' => CRM_DB::get_manager_requests($phone, $search, $status, $date),
+            'auto_approve' => CRM_Auto_Approve::is_enabled($phone, true),
+        ]);
     }
 
     private static function request_target(string $phone): int
@@ -164,6 +188,29 @@ class CRM_Manager_Ajax
         wp_send_json_success(['message' => 'درخواست رد شد.']);
     }
 
+    public static function set_auto_approve(): void
+    {
+        $phone = self::phone();
+        $enabled = isset($_POST['enabled']) && (string) wp_unslash($_POST['enabled']) === '1';
+        if (!CRM_Auto_Approve::set_enabled($phone, $enabled)) {
+            wp_send_json_error(['message' => 'ذخیره تنظیمات ناموفق بود.'], 500);
+        }
+        $events = CRM_DB::get_events_for_manager_phone($phone);
+        CRM_DB::insert_manager_audit($phone, $events ? (int) $events[0]->id : null, $enabled ? 'auto_approve_on' : 'auto_approve_off', 'manager', null, ['manager_phone' => $phone]);
+
+        $approved = 0;
+        $remaining = 0;
+        if ($enabled) {
+            // Approve a first batch of the already-pending requests now; the rest
+            // is finished in the background by WP-Cron.
+            $res = CRM_Auto_Approve::approve_pending_for_phone($phone, CRM_Auto_Approve::REQUEST_BATCH);
+            $approved = $res['approved'];
+            $remaining = $res['remaining'];
+            if ($remaining > 0) CRM_Auto_Approve::schedule_continue();
+        }
+        wp_send_json_success(['enabled' => $enabled, 'approved' => $approved, 'remaining' => $remaining]);
+    }
+
     public static function get_coupons(): void
     {
         $phone = self::phone();
@@ -180,7 +227,7 @@ class CRM_Manager_Ajax
         if (!$coupon || !CRM_DB::is_phone_manager_of_event($phone, (int) $coupon->available_event_id) || (int) $coupon->is_used) {
             wp_send_json_error(['message' => 'کوپن در دسترس نیست یا قبلاً استفاده شده است.'], 403);
         }
-        $updated = CRM_DB::mark_coupon_as_used($id, current_time('mysql'), $phone, 'manager');
+        $updated = CRM_DB::mark_coupon_as_used($id, CRM_DB::sql_now(), $phone, 'manager');
         if (!$updated) wp_send_json_error(['message' => 'ثبت استفاده ناموفق بود.'], 400);
         CRM_DB::insert_manager_audit($phone, (int) $coupon->available_event_id, 'mark_coupon_used', 'coupon', $id, ['actor_type' => 'manager']);
         wp_send_json_success(['message' => 'کوپن استفاده‌شده ثبت شد.']);

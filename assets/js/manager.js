@@ -11,6 +11,10 @@ jQuery(function ($) {
       approved: "تأییدشده",
       disapproved: "ردشده",
     };
+    const autoSwitch = root.find(".crm-manager-switch");
+    function setAutoSwitch(on) {
+      autoSwitch.attr("aria-checked", on ? "true" : "false");
+    }
     function note(value, error) {
       message.text(value || "").toggleClass("error", !!error);
     }
@@ -83,7 +87,7 @@ jQuery(function ($) {
       } else {
         box.append(
           cell("td", labels[item.status] || item.status, "crm-manager-status-" + item.status),
-          cell("td", item.created_at, "crm-manager-ltr"),
+          cell("td", CRMJalali.format(item.created_at), "crm-manager-ltr"),
         );
         if (item.status === "pending") actions.append(
           $("<button type='button'>").text("تأیید").attr("data-approve-id", item.id),
@@ -117,6 +121,8 @@ jQuery(function ($) {
           ),
         )
           .done(function (data) {
+            if (typeof data.auto_approve !== "undefined")
+              setAutoSwitch(!!data.auto_approve);
             const list = root.find(".crm-manager-request-list").empty();
             if (!data.rows.length) list.append($("<tr>").append(cell("td", "درخواستی یافت نشد.").attr("colspan", 5)));
             data.rows.forEach(function (item) {
@@ -201,6 +207,36 @@ jQuery(function ($) {
         .prop("hidden", false);
       note("");
       load(tab);
+    });
+    autoSwitch.on("click", function () {
+      const button = $(this),
+        next = button.attr("aria-checked") !== "true";
+      button.prop("disabled", true);
+      note("");
+      call("set_auto_approve", { enabled: next ? 1 : 0 })
+        .done(function (data) {
+          setAutoSwitch(!!data.enabled);
+          let text = data.enabled
+            ? "تأیید خودکار فعال شد."
+            : "تأیید خودکار غیرفعال شد.";
+          if (data.enabled && data.approved)
+            text +=
+              " " +
+              Number(data.approved).toLocaleString("fa-IR") +
+              " درخواست در انتظار تأیید شد.";
+          if (data.enabled && data.remaining)
+            text +=
+              " " +
+              Number(data.remaining).toLocaleString("fa-IR") +
+              " درخواست باقی‌مانده در پس‌زمینه تأیید می‌شود.";
+          note(text);
+          load("requests");
+          load("dashboard");
+        })
+        .fail(fail)
+        .always(function () {
+          button.prop("disabled", false);
+        });
     });
     root.find(".crm-manager-filters").on("submit change", function (event) {
       event.preventDefault();

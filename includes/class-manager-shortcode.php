@@ -11,6 +11,7 @@ class CRM_Manager_Shortcode
     public static function render(): string
     {
         $phone = CRM_Manager_Ajax::session_phone();
+        $auto_id = wp_unique_id('crm-auto-approve-');
         ob_start();
 ?>
         <div class="crm-manager" dir="rtl">
@@ -24,7 +25,9 @@ class CRM_Manager_Shortcode
                 </form>
                 <div class="crm-manager-otp-success" role="status" hidden>
                     <span class="crm-manager-success-icon" aria-hidden="true">✓</span>
-                    <div><strong>کد ورود ارسال شد</strong><p>کد پیامک‌شده را در کادر زیر وارد کنید.</p></div>
+                    <div><strong>کد ورود ارسال شد</strong>
+                        <p>کد پیامک‌شده را در کادر زیر وارد کنید.</p>
+                    </div>
                 </div>
                 <form class="crm-manager-otp-form" hidden>
                     <label for="crm-manager-code">کد پیامک‌شده</label>
@@ -57,13 +60,28 @@ class CRM_Manager_Shortcode
                             <option value="approved">تأییدشده</option>
                             <option value="disapproved">ردشده</option>
                         </select>
-                        <input name="date" type="date" aria-label="تاریخ درخواست">
+                        <input name="date" type="text" class="crm-jalali-input" data-today="<?php echo esc_attr(substr(CRM_DB::sql_now(), 0, 10)); ?>" placeholder="تاریخ شمسی: ۱۴۰۵-۰۷-۰۹" aria-label="تاریخ درخواست" inputmode="numeric" autocomplete="off" dir="ltr">
                         <button type="submit">جستجو</button>
                     </form>
-                    <div class="crm-manager-table-scroll"><table class="crm-manager-table crm-manager-request-table">
-                        <thead><tr><th scope="col">رویداد</th><th scope="col">شماره مشتری</th><th scope="col">وضعیت</th><th scope="col">تاریخ ثبت</th><th scope="col">عملیات</th></tr></thead>
-                        <tbody class="crm-manager-request-list"></tbody>
-                    </table></div>
+                    <div class="crm-manager-auto-approve">
+                        <button type="button" id="<?php echo esc_attr($auto_id); ?>" class="crm-manager-switch" role="switch" aria-checked="false" aria-describedby="<?php echo esc_attr($auto_id); ?>-tip"></button>
+                        <label for="<?php echo esc_attr($auto_id); ?>">تایید خودکار درخواست ها</label>
+                        <span id="<?php echo esc_attr($auto_id); ?>-tip" class="crm-manager-tooltip" role="tooltip">با فعالسازی این گزینه همه درخواست ها بصورت خودکار تایید خواهند شد.</span>
+                    </div>
+                    <div class="crm-manager-table-scroll">
+                        <table class="crm-manager-table crm-manager-request-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">رویداد</th>
+                                    <th scope="col">شماره مشتری</th>
+                                    <th scope="col">وضعیت</th>
+                                    <th scope="col">تاریخ ثبت</th>
+                                    <th scope="col">عملیات</th>
+                                </tr>
+                            </thead>
+                            <tbody class="crm-manager-request-list"></tbody>
+                        </table>
+                    </div>
                 </section>
                 <section class="crm-manager-section" data-section="coupons" hidden>
                     <form class="crm-manager-coupon-filter crm-manager-filters">
@@ -75,10 +93,21 @@ class CRM_Manager_Shortcode
                         </select>
                         <button type="submit">جستجو</button>
                     </form>
-                    <div class="crm-manager-table-scroll"><table class="crm-manager-table crm-manager-coupon-table">
-                        <thead><tr><th scope="col">رویداد</th><th scope="col">شماره مشتری</th><th scope="col">کد تخفیف</th><th scope="col">درصد تخفیف</th><th scope="col">وضعیت</th><th scope="col">عملیات</th></tr></thead>
-                        <tbody class="crm-manager-coupon-list"></tbody>
-                    </table></div>
+                    <div class="crm-manager-table-scroll">
+                        <table class="crm-manager-table crm-manager-coupon-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">رویداد</th>
+                                    <th scope="col">شماره مشتری</th>
+                                    <th scope="col">کد تخفیف</th>
+                                    <th scope="col">درصد تخفیف</th>
+                                    <th scope="col">وضعیت</th>
+                                    <th scope="col">عملیات</th>
+                                </tr>
+                            </thead>
+                            <tbody class="crm-manager-coupon-list"></tbody>
+                        </table>
+                    </div>
                 </section>
             </div>
             <p class="crm-manager-message" role="status" aria-live="polite"></p>

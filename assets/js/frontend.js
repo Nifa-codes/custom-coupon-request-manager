@@ -30,12 +30,21 @@ jQuery(document).ready(function ($) {
     $content.find(".crm-success-wrapper").remove();
   }
 
+  // Any element matching this selector opens the modal:
+  //  - the built-in button of [coupon_request_form]
+  //  - any element/wrapper with the class "crm-open-modal"
+  //  - any link whose URL is "#crm-open-modal"
+  var TRIGGER_SELECTOR =
+    '#crm-open-modal-btn, .crm-open-modal, a[href="#crm-open-modal"]';
+
   function openModal() {
     $modal.fadeIn(200).attr("aria-hidden", "false");
+    $("body").addClass("crm-modal-open");
   }
 
   function closeModal() {
     $modal.fadeOut(200).attr("aria-hidden", "true");
+    $("body").removeClass("crm-modal-open");
 
     // بازگرداندن وضعیت مودال به حالت اولیه برای استفاده‌های بعدی
     clearMessage();
@@ -50,12 +59,24 @@ jQuery(document).ready(function ($) {
     }
   }
 
-  // Safety guards
-  if (!$modal.length || !$openBtn.length || !$form.length) return;
+  // Safety guard (the form may be missing when there is no active event)
+  if (!$modal.length) return;
 
-  $openBtn.on("click", function (e) {
+  // Move the modal to <body> so page-builder wrappers (transform, overflow,
+  // z-index...) can't break its fixed positioning.
+  $modal.appendTo(document.body);
+
+  // Delegated, so it also works for buttons added by page builders / popups
+  $(document).on("click", TRIGGER_SELECTOR, function (e) {
     e.preventDefault();
     openModal();
+  });
+
+  // Close with the ESC key
+  $(document).on("keydown", function (e) {
+    if (e.key === "Escape" && $modal.is(":visible")) {
+      closeModal();
+    }
   });
 
   $closeBtn.on("click", function (e) {

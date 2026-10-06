@@ -2,9 +2,9 @@
 
 /**
  * Plugin Name: Coupon Request Manager
- * Description: Frontend coupon request system with OTP SMS integration (Melipayamak), admin management and event manager login and dashboard panel.
- * Version:     3.0.0
- * Author:      Nifa-codes
+ * Description: Frontend coupon request system with OTP SMS integration (Melipayamak) and admin management.
+ * Version:     1.0.4
+ * Author:      Coupon Request Manager
  * Text Domain: coupon-request-manager
  */
 
@@ -12,20 +12,27 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('CRM_PLUGIN_VERSION', '1.0.1');
+define('CRM_PLUGIN_VERSION', '1.0.4');
 define('CRM_DB_VERSION', '1.2.0');
 define('CRM_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('CRM_PLUGIN_URL', plugin_dir_url(__FILE__));
 
 require_once CRM_PLUGIN_DIR . 'includes/class-db.php';
+require_once CRM_PLUGIN_DIR . 'includes/class-jalali-date.php';
 require_once CRM_PLUGIN_DIR . 'includes/class-phone-helper.php';
 require_once CRM_PLUGIN_DIR . 'includes/class-coupon-generator.php';
 require_once CRM_PLUGIN_DIR . 'includes/class-melipayamak.php';
+require_once CRM_PLUGIN_DIR . 'includes/class-auto-approve.php';
 require_once CRM_PLUGIN_DIR . 'includes/class-ajax.php';
 require_once CRM_PLUGIN_DIR . 'includes/class-manager-ajax.php';
 require_once CRM_PLUGIN_DIR . 'includes/class-admin.php';
+require_once CRM_PLUGIN_DIR . 'includes/class-reports-table.php';
 require_once CRM_PLUGIN_DIR . 'includes/class-shortcode.php';
 require_once CRM_PLUGIN_DIR . 'includes/class-manager-shortcode.php';
+
+// تأیید خودکار درخواست‌ها (WP-Cron + هوک ثبت درخواست)
+CRM_Auto_Approve::init();
+register_deactivation_hook(__FILE__, ['CRM_Auto_Approve', 'unschedule']);
 
 // فعال‌سازی افزونه: ساخت جداول و اجرای مایگریشن
 register_activation_hook(__FILE__, function () {
@@ -58,8 +65,9 @@ add_action('wp_enqueue_scripts', function () {
     global $post;
 
     if (is_a($post, 'WP_Post') && has_shortcode($post->post_content, 'crm_manager_panel')) {
+        wp_enqueue_script('crm-jalali-js', CRM_PLUGIN_URL . 'assets/js/jalali.js', [], CRM_PLUGIN_VERSION, true);
         wp_enqueue_style('crm-manager-css', CRM_PLUGIN_URL . 'assets/css/manager.css', [], CRM_PLUGIN_VERSION);
-        wp_enqueue_script('crm-manager-js', CRM_PLUGIN_URL . 'assets/js/manager.js', ['jquery'], CRM_PLUGIN_VERSION, true);
+        wp_enqueue_script('crm-manager-js', CRM_PLUGIN_URL . 'assets/js/manager.js', ['jquery', 'crm-jalali-js'], CRM_PLUGIN_VERSION, true);
         wp_localize_script('crm-manager-js', 'crm_manager_data', [
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('crm_manager_nonce'),
@@ -93,7 +101,7 @@ add_action('wp_enqueue_scripts', function () {
 
 // بارگذاری فایل‌های پیشخوان ادمین
 add_action('admin_enqueue_scripts', function ($hook) {
-    if (strpos($hook, 'coupon-manager') === false && strpos($hook, 'crm') === false) {
+    if (strpos($hook, 'coupon-request-manager') === false && strpos($hook, 'crm') === false) {
         return;
     }
 
@@ -104,10 +112,12 @@ add_action('admin_enqueue_scripts', function ($hook) {
         CRM_PLUGIN_VERSION
     );
 
+    wp_enqueue_script('crm-jalali-js', CRM_PLUGIN_URL . 'assets/js/jalali.js', [], CRM_PLUGIN_VERSION, true);
+
     wp_enqueue_script(
         'crm-admin-js',
         CRM_PLUGIN_URL . 'assets/js/admin.js',
-        ['jquery'],
+        ['jquery', 'crm-jalali-js'],
         CRM_PLUGIN_VERSION,
         true
     );

@@ -6,6 +6,12 @@ if (!defined('ABSPATH')) {
 
 class CRM_DB
 {
+    /** Use the SQL server's timestamp for database DATETIME columns. */
+    public static function sql_now(): string
+    {
+        global $wpdb;
+        return (string) $wpdb->get_var('SELECT NOW()');
+    }
     /**
      * Events table.
      *
@@ -633,7 +639,7 @@ class CRM_DB
                 [
                     'event_id'      => $event_id,
                     'manager_phone' => $phone,
-                    'created_at'    => current_time('mysql'),
+                    'created_at'    => self::sql_now(),
                 ],
                 ['%d', '%s', '%s']
             );
@@ -741,15 +747,12 @@ class CRM_DB
         $table = self::get_events_table();
 
         return $wpdb->get_row(
-            $wpdb->prepare(
                 "SELECT *
                  FROM {$table}
                  WHERE isAvailable = 1
-                   AND expires_at > %s
+                   AND expires_at > NOW()
                  ORDER BY id DESC
-                 LIMIT 1",
-                current_time('mysql')
-            )
+                 LIMIT 1"
         );
     }
 
@@ -843,7 +846,7 @@ class CRM_DB
                 'customer_phone' => $phone,
                 'event_id'       => (int) $event_id,
                 'status'         => 'pending',
-                'created_at'     => current_time('mysql'),
+                'created_at'     => self::sql_now(),
             ],
             ['%s', '%d', '%s', '%s']
         );
@@ -935,7 +938,7 @@ class CRM_DB
                 'status'           => 'disapproved',
                 'rejected_by_type' => $actor_type,
                 'rejected_by'      => trim($identifier),
-                'rejected_at'      => current_time('mysql'),
+                'rejected_at'      => self::sql_now(),
             ],
             ['id' => (int) $request_id],
             ['%s', '%s', '%s', '%s'],
@@ -972,6 +975,18 @@ class CRM_DB
             return new WP_Error('approve_failed', 'شروع تراکنش دیتابیس ناموفق بود.');
         }
 
+        // Lock the request row and re-check its status, so two concurrent callers
+        // (manager click, auto-approve, background sweep) can never both issue a
+        // coupon for the same request.
+        $locked_status = $wpdb->get_var($wpdb->prepare(
+            'SELECT status FROM ' . self::get_requests_table() . ' WHERE id = %d FOR UPDATE',
+            $request_id
+        ));
+        if ($locked_status !== 'pending') {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error('invalid_request', 'درخواست نامعتبر است یا قبلاً پردازش شده است.');
+        }
+
         try {
             $coupon_code = CRM_Coupon_Generator::generate();
             $identifier = trim($identifier);
@@ -987,7 +1002,7 @@ class CRM_DB
                     'accepted_by_admin'  => $actor_type === 'admin' ? $identifier : null,
                     'accepted_by_type'   => $actor_type,
                     'accepted_by'        => $identifier,
-                    'accepted_at'        => current_time('mysql'),
+                    'accepted_at'        => self::sql_now(),
                     'otp_sent'           => 0,
                 ],
                 ['%d', '%s', '%d', '%d', '%s', '%s', '%s', '%s', '%d']
@@ -1074,6 +1089,13 @@ class CRM_DB
                 ['actor_type' => $actor_type, 'coupon_id' => $coupon_id]
             );
 
+            if (!$sent_customer || !$any_manager_sent) {
+                self::insert_manager_audit($identifier, (int) $request_data->event_id, 'sms_failed', 'coupon', $coupon_id, [
+                    'actor_type' => $actor_type, 'context' => 'approve_request',
+                    'customer_failed' => !$sent_customer, 'manager_failed' => !$any_manager_sent,
+                ]);
+            }
+
             return true;
         } catch (Exception $e) {
             $wpdb->query('ROLLBACK');
@@ -1138,7 +1160,7 @@ class CRM_DB
     }
 
     /**
-     * Delete an event and its manager memberships.
+     * Delete an event and its manager memberships when no requests or coupons exist.
      *
      * Existing return behavior is preserved: the event-delete result is
      * returned as an integer or false.
@@ -1160,6 +1182,20 @@ class CRM_DB
             return false;
         }
 
+        $event_row = $wpdb->get_var($wpdb->prepare(
+            'SELECT id FROM ' . self::get_events_table() . ' WHERE id = %d FOR UPDATE',
+            $event_id
+        ));
+        $requests_table = self::get_requests_table();
+        $request_count = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$requests_table} WHERE event_id = %d",
+            $event_id
+        ));
+        if (!$event_row || $request_count > 0 || self::count_approved_coupons_for_event($event_id) > 0) {
+            $wpdb->query('ROLLBACK');
+            return false;
+        }
+
         $manager_delete = $wpdb->delete(
             self::get_event_managers_table(),
             ['event_id' => $event_id],
@@ -1178,7 +1214,7 @@ class CRM_DB
             ['%d']
         );
 
-        if ($event_delete === false) {
+        if ($event_delete !== 1) {
             $wpdb->query('ROLLBACK');
 
             return false;
@@ -1284,7 +1320,7 @@ class CRM_DB
 
         $data = [
             'is_used' => 1,
-            'used_at' => $datetime ?: current_time('mysql'),
+            'used_at' => $datetime ?: self::sql_now(),
         ];
 
         $formats = ['%d', '%s'];
@@ -1368,7 +1404,7 @@ class CRM_DB
                         $details,
                         JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
                     ),
-                'created_at'    => current_time('mysql'),
+                'created_at'    => self::sql_now(),
             ],
             ['%s', '%d', '%s', '%s', '%d', '%s', '%s']
         );
@@ -1410,9 +1446,8 @@ class CRM_DB
     {
         global $wpdb;
         $table = self::get_manager_otps_table();
-        $since = (new DateTimeImmutable('now', wp_timezone()))->modify('-1 hour')->format('Y-m-d H:i:s');
         return [
-            'count' => (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE manager_phone = %s AND created_at > %s", $phone, $since)),
+            'count' => (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE manager_phone = %s AND created_at > NOW() - INTERVAL 1 HOUR", $phone)),
             'latest' => $wpdb->get_var($wpdb->prepare("SELECT created_at FROM {$table} WHERE manager_phone = %s ORDER BY id DESC LIMIT 1", $phone)),
         ];
     }
@@ -1423,10 +1458,9 @@ class CRM_DB
         $table = self::get_manager_otps_table();
         self::invalidate_manager_otps($phone);
         $ok = $wpdb->query($wpdb->prepare(
-            "INSERT INTO {$table} (manager_phone, otp_hash, expires_at, created_at) VALUES (%s, %s, NOW() + INTERVAL 180 SECOND, %s)",
+            "INSERT INTO {$table} (manager_phone, otp_hash, expires_at, created_at) VALUES (%s, %s, NOW() + INTERVAL 180 SECOND, NOW())",
             $phone,
-            $hash,
-            current_time('mysql')
+            $hash
         ));
         return $ok ? (int) $wpdb->insert_id : 0;
     }
@@ -1476,10 +1510,9 @@ class CRM_DB
         global $wpdb;
         $table = self::get_manager_sessions_table();
         return (bool) $wpdb->query($wpdb->prepare(
-            "INSERT INTO {$table} (token_hash, manager_phone, expires_at, created_at) VALUES (%s, %s, NOW() + INTERVAL 1 DAY, %s)",
+            "INSERT INTO {$table} (token_hash, manager_phone, expires_at, created_at) VALUES (%s, %s, NOW() + INTERVAL 1 DAY, NOW())",
             hash('sha256', $token),
-            $phone,
-            current_time('mysql')
+            $phone
         ));
     }
 
@@ -1505,7 +1538,7 @@ class CRM_DB
         }
     }
 
-    private static function manager_event_ids(string $phone): array
+    public static function manager_event_ids(string $phone): array
     {
         global $wpdb;
         $events = self::get_events_table();

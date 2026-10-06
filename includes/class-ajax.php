@@ -93,6 +93,13 @@ class CRM_Ajax
             wp_send_json_error(['message' => 'خطا در ثبت درخواست. لطفاً دوباره تلاش کنید.']);
         }
 
+        // If one of the event's managers has auto-approve switched on, approve right
+        // away. This never fails the submission: on any problem the request stays
+        // pending and the background sweep retries it.
+        if (class_exists('CRM_Auto_Approve')) {
+            CRM_Auto_Approve::maybe_approve_new_request((int) $request_id);
+        }
+
         wp_send_json_success([
             'message'    => 'درخواست شما با موفقیت ثبت شد و پس از بررسی، کد تخفیف پیامک خواهد شد.',
             'request_id' => (int) $request_id,
@@ -144,7 +151,7 @@ class CRM_Ajax
             wp_send_json_error(['message' => 'شناسه کوپن نامعتبر است.']);
         }
 
-        $now = current_time('mysql');
+        $now = CRM_DB::sql_now();
         $success = CRM_DB::mark_coupon_as_used($coupon_id, $now);
 
         if (!$success) {
@@ -166,7 +173,7 @@ class CRM_Ajax
         wp_send_json_success([
             'message'        => 'کوپن با موفقیت به‌عنوان استفاده‌شده علامت‌گذاری شد.',
             'used_at'        => $now,
-            'formatted_date' => mysql2date('Y-m-d H:i:s', $now),
+            'formatted_date' => $now,
         ]);
     }
 }

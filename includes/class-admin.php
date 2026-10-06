@@ -43,6 +43,7 @@ class CRM_Requests_List_Table extends WP_List_Table
 
         $status = isset($_GET['status']) ? sanitize_text_field(wp_unslash($_GET['status'])) : '';
         $search = isset($_GET['s']) ? sanitize_text_field(wp_unslash($_GET['s'])) : '';
+        $audit_request_id = isset($_GET['audit_request_id']) ? absint($_GET['audit_request_id']) : 0;
 
         $where = ['1=1'];
         $params = [];
@@ -52,11 +53,19 @@ class CRM_Requests_List_Table extends WP_List_Table
             $params[] = $status;
         }
 
-        if (!empty($search)) {
-            $where[] = '(r.customer_phone LIKE %s OR e.name LIKE %s)';
+        if ($audit_request_id > 0) {
+            $where[] = 'r.id = %d';
+            $params[] = $audit_request_id;
+        }
+
+        if ($search !== '') {
+            $where[] = '(r.customer_phone LIKE %s OR e.name LIKE %s' . (ctype_digit($search) ? ' OR r.id = %d' : '') . ')';
             $like_search = '%' . $wpdb->esc_like($search) . '%';
             $params[] = $like_search;
             $params[] = $like_search;
+            if (ctype_digit($search)) {
+                $params[] = (int) $search;
+            }
         }
 
         $where_clause = implode(' AND ', $where);
@@ -108,7 +117,7 @@ class CRM_Requests_List_Table extends WP_List_Table
                     return '<span class="crm-badge crm-badge-disapproved">رد شده</span>';
                 }
             case 'created_at':
-                return esc_html($item->created_at);
+                return '<time class="crm-jalali-datetime" data-sql-datetime="' . esc_attr($item->created_at) . '">' . esc_html($item->created_at) . '</time>';
             case 'actions':
                 if ($item->status === 'pending') {
                     $approve_nonce = wp_create_nonce('crm_approve_req_' . $item->id);
@@ -180,15 +189,24 @@ class CRM_Events_List_Table extends WP_List_Table
         $offset = ($current_page - 1) * $per_page;
 
         $search = isset($_GET['s']) ? sanitize_text_field(wp_unslash($_GET['s'])) : '';
+        $audit_event_id = isset($_GET['audit_event_id']) ? absint($_GET['audit_event_id']) : 0;
         $managers_table = CRM_DB::get_event_managers_table();
-        $where = '';
+        $conditions = [];
         $params = [];
-        if ($search !== '') {
-            $where = " WHERE (e.name LIKE %s OR e.event_manager_phone LIKE %s OR EXISTS
-                (SELECT 1 FROM {$managers_table} m WHERE m.event_id = e.id AND m.manager_phone LIKE %s))";
-            $like = '%' . $wpdb->esc_like($search) . '%';
-            $params = [$like, $like, $like];
+        if ($audit_event_id > 0) {
+            $conditions[] = 'e.id = %d';
+            $params[] = $audit_event_id;
         }
+        if ($search !== '') {
+            $conditions[] = "(e.name LIKE %s OR e.event_manager_phone LIKE %s OR EXISTS
+                (SELECT 1 FROM {$managers_table} m WHERE m.event_id = e.id AND m.manager_phone LIKE %s)" . (ctype_digit($search) ? ' OR e.id = %d)' : ')');
+            $like = '%' . $wpdb->esc_like($search) . '%';
+            array_push($params, $like, $like, $like);
+            if (ctype_digit($search)) {
+                $params[] = (int) $search;
+            }
+        }
+        $where = $conditions ? ' WHERE ' . implode(' AND ', $conditions) : '';
 
         $count_sql = "SELECT COUNT(*) FROM {$table_name} e{$where}";
         $total_items = (int) $wpdb->get_var($params ? $wpdb->prepare($count_sql, $params) : $count_sql);
@@ -254,14 +272,14 @@ class CRM_Events_List_Table extends WP_List_Table
                     return 'بدون انقضا';
                 }
 
-                return esc_html((string) $item->expires_at);
+                return '<time class="crm-jalali-datetime" data-sql-datetime="' . esc_attr($item->expires_at) . '">' . esc_html((string) $item->expires_at) . '</time>';
 
             case 'created_at':
                 if (empty($item->created_at)) {
                     return '—';
                 }
 
-                return esc_html((string) $item->created_at);
+                return '<time class="crm-jalali-datetime" data-sql-datetime="' . esc_attr($item->created_at) . '">' . esc_html((string) $item->created_at) . '</time>';
 
             case 'actions':
                 $edit_url = add_query_arg(
@@ -273,28 +291,19 @@ class CRM_Events_List_Table extends WP_List_Table
                     admin_url('admin.php')
                 );
 
-                $delete_url = add_query_arg(
-                    [
-                        'page'   => 'crm-events',
-                        'action' => 'crm_delete_event',
-                        'id'     => (int) $item->id,
-                    ],
-                    admin_url('admin.php')
-                );
-
-                $delete_url = wp_nonce_url(
-                    $delete_url,
-                    'crm_delete_event_' . (int) $item->id
-                );
-
                 return sprintf(
                     '<a href="%1$s" class="button button-small">%2$s</a>
-                    <a href="%3$s"
-                       class="button button-small button-link-delete"
-                       onclick="return confirm(\'آیا از حذف این رویداد اطمینان دارید؟\');">%4$s</a>',
+                    <form method="post" action="%3$s" class="crm-event-delete-form"
+                       onsubmit="return confirm(\'آیا از حذف این رویداد اطمینان دارید؟\');">
+                        <input type="hidden" name="crm_delete_event" value="%4$d">
+                        <input type="hidden" name="_wpnonce" value="%5$s">
+                        <button type="submit" class="button button-small button-link-delete">%6$s</button>
+                    </form>',
                     esc_url($edit_url),
                     esc_html('ویرایش'),
-                    esc_url($delete_url),
+                    esc_url(admin_url('admin.php?page=crm-events')),
+                    (int) $item->id,
+                    esc_attr(wp_create_nonce('crm_delete_event_' . (int) $item->id)),
                     esc_html('حذف')
                 );
 
@@ -484,7 +493,7 @@ class CRM_Coupons_List_Table extends WP_List_Table
                     return '—';
                 }
 
-                return esc_html(mysql2date('Y-m-d H:i:s', $used_at));
+                return esc_html($used_at);
 
             case 'expires_at':
                 if (
@@ -495,7 +504,7 @@ class CRM_Coupons_List_Table extends WP_List_Table
                     return 'بدون انقضا';
                 }
 
-                return esc_html((string) $item->expires_at);
+                return '<time class="crm-jalali-datetime" data-sql-datetime="' . esc_attr($item->expires_at) . '">' . esc_html((string) $item->expires_at) . '</time>';
 
             case 'discount_value':
                 return esc_html((string) $item->discount_value);
@@ -607,6 +616,15 @@ class CRM_Admin
 
         add_submenu_page(
             'coupon-request-manager',
+            'گزارش ها',
+            'گزارش ها',
+            'manage_options',
+            'crm-reports',
+            [$this, 'render_reports_page']
+        );
+
+        add_submenu_page(
+            'coupon-request-manager',
             'تنظیمات ملی‌پیامک',
             'تنظیمات ملی‌پیامک',
             'manage_options',
@@ -635,8 +653,8 @@ class CRM_Admin
             $this->process_disapprove_request($req_id);
         }
 
-        if ($action === 'crm_delete_event') {
-            $event_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+        if (isset($_POST['crm_delete_event']) && isset($_GET['page']) && $_GET['page'] === 'crm-events') {
+            $event_id = absint($_POST['crm_delete_event']);
             check_admin_referer('crm_delete_event_' . $event_id);
             $this->process_delete_event($event_id);
         }
@@ -747,16 +765,23 @@ class CRM_Admin
         $otp_sent = ($sent_customer && $any_manager_sent) ? 1 : 0;
         CRM_DB::update_coupon_otp_status($coupon_id, $otp_sent);
 
-        if ($otp_sent) {
-            $current_user = wp_get_current_user();
-            $actor_identifier = $current_user->display_name ?: $current_user->user_login;
+        $current_user = wp_get_current_user();
+        $actor_identifier = $current_user->display_name ?: $current_user->user_login;
+        if (!$sent_customer || !$any_manager_sent) {
+            CRM_DB::insert_manager_audit($actor_identifier, $event_id, 'sms_failed', 'coupon', $coupon_id, [
+                'actor_type' => 'admin', 'context' => 'retry_sms',
+                'customer_failed' => !$sent_customer, 'manager_failed' => !$any_manager_sent,
+            ]);
+        }
+
+        if ($sent_customer) {
             CRM_DB::insert_manager_audit(
                 $actor_identifier,
                 $event_id,
                 'retry_sms',
                 'coupon',
                 $coupon_id,
-                ['actor_type' => 'admin']
+                ['actor_type' => 'admin', 'manager_sms_sent' => $any_manager_sent]
             );
         }
 
@@ -832,6 +857,11 @@ class CRM_Admin
 
         $table  = CRM_DB::get_events_table();
         $format = ['%s', '%d', '%s', '%d'];
+        $previous = $event_id > 0 ? CRM_DB::get_event_by_id($event_id) : null;
+        if ($event_id > 0 && !$previous) {
+            $this->redirect_with_notice('crm-events', 'رویداد یافت نشد.', 'error');
+        }
+        $previous_phones = $previous ? CRM_DB::get_event_manager_phones($event_id) : [];
 
         $data = [
             'name'                => $name,
@@ -843,7 +873,11 @@ class CRM_Admin
 
         // --- رفع باگ قدیمی format شامل null ---
         if ($expires_raw !== '') {
-            $data['expires_at'] = str_replace('T', ' ', $expires_raw);
+            $expires_sql = CRM_Jalali_Date::to_sql($expires_raw);
+            if ($expires_sql === null) {
+                $this->redirect_with_notice('crm-events', 'تاریخ شمسی انقضا معتبر نیست.', 'error');
+            }
+            $data['expires_at'] = $expires_sql;
             $format[] = '%s';
         } else {
             // بدون انقضا → حذف صریح مقدار قبلی
@@ -852,20 +886,44 @@ class CRM_Admin
         }
 
         if ($event_id > 0) {
-            $wpdb->update($table, $data, ['id' => $event_id], $format, ['%d']);
+            $saved = $wpdb->update($table, $data, ['id' => $event_id], $format, ['%d']);
         } else {
-            $wpdb->insert($table, $data, $format);
-            $event_id = (int) $wpdb->insert_id;
+            $saved = $wpdb->insert($table, $data, $format);
+            $event_id = $saved ? (int) $wpdb->insert_id : 0;
         }
 
-        if (
-            $event_id > 0
-            && method_exists('CRM_DB', 'set_event_managers')
-        ) {
-            CRM_DB::set_event_managers(
-                $event_id,
-                $manager_phones
-            );
+        if ($saved === false || $event_id <= 0 || !CRM_DB::set_event_managers($event_id, $manager_phones)) {
+            $this->redirect_with_notice('crm-events', 'خطا در ذخیره رویداد.', 'error');
+        }
+
+        $user = wp_get_current_user();
+        $actor_identifier = $user->display_name ?: $user->user_login;
+        if (!$previous) {
+            CRM_DB::insert_manager_audit($actor_identifier, $event_id, 'event_created', 'event', $event_id);
+        } else {
+            $changes = [];
+            foreach ([
+                'name' => 'نام رویداد',
+                'discount_value' => 'درصد تخفیف',
+                'isAvailable' => 'وضعیت دسترسی',
+                'expires_at' => 'تاریخ انقضا',
+            ] as $field => $label) {
+                $before = (string) $previous->{$field};
+                $after = (string) $data[$field];
+                if ($before !== $after) {
+                    $changes[$label] = ['از' => $before, 'به' => $after];
+                }
+            }
+            $old_phones = array_values(array_unique(array_map('strval', $previous_phones)));
+            $new_phones = $manager_phones;
+            sort($old_phones);
+            sort($new_phones);
+            if ($old_phones !== $new_phones) {
+                $changes['شماره مدیران'] = ['از' => $old_phones, 'به' => $new_phones];
+            }
+            if ($changes) {
+                CRM_DB::insert_manager_audit($actor_identifier, $event_id, 'event_updated', 'event', $event_id, $changes);
+            }
         }
 
         wp_safe_redirect(add_query_arg([
@@ -878,13 +936,48 @@ class CRM_Admin
 
     private function process_delete_event(int $event_id): void
     {
-        $approved_coupons_count = CRM_DB::count_approved_coupons_for_event($event_id);
+        $event = $event_id > 0 ? CRM_DB::get_event_by_id($event_id) : null;
+        if (!$event) {
+            $this->redirect_with_notice('crm-events', 'رویداد یافت نشد.', 'error');
+        }
 
-        if ($approved_coupons_count > 0) {
+        $approved_coupons_count = CRM_DB::count_approved_coupons_for_event($event_id);
+        global $wpdb;
+        $requests_table = CRM_DB::get_requests_table();
+        $requests_count = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$requests_table} WHERE event_id = %d",
+            $event_id
+        ));
+        if ($requests_count > 0 || $approved_coupons_count > 0) {
+            $updated = $wpdb->update(
+                CRM_DB::get_events_table(),
+                ['isAvailable' => 0],
+                ['id' => $event_id],
+                ['%d'],
+                ['%d']
+            );
+            if ($updated === false) {
+                $this->redirect_with_notice('crm-events', 'خطا در غیرفعال‌کردن رویداد.', 'error');
+            }
+            if ($updated > 0) {
+                $user = wp_get_current_user();
+                $actor_identifier = $user->display_name ?: $user->user_login;
+                CRM_DB::insert_manager_audit($actor_identifier, $event_id, 'event_updated', 'event', $event_id, [
+                    'وضعیت دسترسی' => ['از' => (string) $event->isAvailable, 'به' => '0'],
+                ]);
+            }
+
+            $reasons = [];
+            if ($requests_count > 0) {
+                $reasons[] = "{$requests_count} درخواست ثبت‌شده";
+            }
+            if ($approved_coupons_count > 0) {
+                $reasons[] = "{$approved_coupons_count} کد تخفیف صادرشده";
+            }
             $this->redirect_with_notice(
                 'crm-events',
-                "هشدار: این رویداد دارای {$approved_coupons_count} کد تخفیف صادر شده می‌باشد. حذف انجام نشد.",
-                'error'
+                'رویداد به دلیل داشتن ' . implode(' و ', $reasons) . ' حذف نشد و غیرفعال شد.',
+                'success'
             );
         }
 
@@ -962,6 +1055,9 @@ class CRM_Admin
 
             <form method="get">
                 <input type="hidden" name="page" value="coupon-request-manager" />
+                <?php if (isset($_GET['audit_request_id']) && absint($_GET['audit_request_id']) > 0) : ?>
+                    <input type="hidden" name="audit_request_id" value="<?php echo esc_attr((string) absint($_GET['audit_request_id'])); ?>">
+                <?php endif; ?>
                 <?php if (!empty($current_status)) : ?>
                     <input type="hidden" name="status" value="<?php echo esc_attr($current_status); ?>" />
                 <?php endif; ?>
@@ -1028,7 +1124,8 @@ class CRM_Admin
 
                         <p>
                             <label for="expires_at"><?php echo esc_html('تاریخ انقضا'); ?></label><br>
-                            <input type="datetime-local" id="expires_at" name="expires_at" class="widefat" value="<?php echo ($event && $event->expires_at) ? esc_attr(date('Y-m-d\TH:i', strtotime($event->expires_at))) : ''; ?>">
+                            <input type="text" id="expires_at" name="expires_at" class="widefat crm-jalali-input" data-sql-datetime="<?php echo $event ? esc_attr((string) $event->expires_at) : ''; ?>" data-today="<?php echo esc_attr(substr(CRM_DB::sql_now(), 0, 10)); ?>" placeholder="۱۴۰۵-۰۷-۰۶ ۱۸:۵۰" inputmode="numeric" autocomplete="off" dir="ltr" aria-describedby="crm-expires-hint">
+                            <span id="crm-expires-hint" class="description">تاریخ و ساعت شمسی را انتخاب کنید یا به شکل ۱۴۰۵-۰۷-۰۶ ۱۸:۵۰ وارد کنید.</span>
                         </p>
                         <p>
                             <label>
@@ -1049,8 +1146,8 @@ class CRM_Admin
                     <form method="get">
                         <input type="hidden" name="page" value="crm-events" />
                         <?php $table->search_box('جستجو رویدادها', 'crm_event_search'); ?>
-                        <?php $table->display(); ?>
                     </form>
+                    <?php $table->display(); ?>
                 </div>
             </div>
         </div>
@@ -1073,6 +1170,48 @@ class CRM_Admin
             </form>
         </div>
     <?php
+    }
+
+    public function render_reports_page(): void
+    {
+        if (!current_user_can('manage_options')) {
+            wp_die(esc_html('دسترسی غیرمجاز.'));
+        }
+        $table = new CRM_Reports_List_Table();
+        $table->prepare_items();
+        $action = isset($_GET['audit_action']) ? sanitize_key(wp_unslash($_GET['audit_action'])) : '';
+        $from = isset($_GET['date_from']) ? sanitize_text_field(wp_unslash($_GET['date_from'])) : '';
+        $to = isset($_GET['date_to']) ? sanitize_text_field(wp_unslash($_GET['date_to'])) : '';
+        ?>
+        <div class="wrap crm-admin-wrap crm-reports-wrap">
+            <h1><?php echo esc_html('گزارش ها'); ?></h1>
+            <form method="get" action="<?php echo esc_url(admin_url('admin.php')); ?>">
+                <input type="hidden" name="page" value="crm-reports">
+                <div class="crm-reports-filters">
+                    <label for="crm-reports-search">جستجوی رویداد یا شماره مدیر
+                        <input type="search" id="crm-reports-search" name="s" value="<?php echo esc_attr(isset($_GET['s']) ? sanitize_text_field(wp_unslash($_GET['s'])) : ''); ?>" placeholder="نام رویداد یا شماره مدیر">
+                    </label>
+                    <label for="crm-reports-action">نوع عملیات
+                        <select id="crm-reports-action" name="audit_action">
+                            <option value="">همه عملیات</option>
+                            <?php foreach (CRM_Reports_List_Table::action_labels() as $key => $label) : ?>
+                                <option value="<?php echo esc_attr($key); ?>" <?php selected($action, $key); ?>><?php echo esc_html($label); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+                    <label for="crm-reports-from">از تاریخ
+                        <input type="date" id="crm-reports-from" name="date_from" value="<?php echo esc_attr($from); ?>">
+                    </label>
+                    <label for="crm-reports-to">تا تاریخ
+                        <input type="date" id="crm-reports-to" name="date_to" value="<?php echo esc_attr($to); ?>">
+                    </label>
+                    <button type="submit" class="button button-primary">نمایش گزارش</button>
+                    <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=crm-reports')); ?>">پاک‌کردن فیلترها</a>
+                </div>
+                <?php $table->display(); ?>
+            </form>
+        </div>
+        <?php
     }
 
     public function render_settings_page(): void

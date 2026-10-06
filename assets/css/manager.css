@@ -11,7 +11,7 @@
 .crm-manager button:hover, .crm-manager button:focus-visible { background: #e8cd8f; border-color: #e8cd8f; color: #0d2846; }
 .crm-manager button:disabled { opacity: .55; cursor: wait; }
 .crm-manager .crm-manager-secondary { background: #fff; color: #0d2846; }
-.crm-manager-login form button { margin-top: .8rem; }
+.crm-manager-login form button { width:100%; margin-top: .8rem; }
 .crm-manager-header { display: flex; align-items: center; justify-content: flex-end; gap: 1rem; }
 .crm-manager-tabs { display: flex; gap: .4rem; overflow-x: auto; margin: 1rem 0; border-bottom: 1px solid #dce2e8; padding-bottom: .4rem; }
 .crm-manager-tabs button { white-space: nowrap; background: #eef1f4; color: #0d2846; }
@@ -42,3 +42,30 @@
 .crm-manager-message { min-height: 1.5em; color: #165c30; }
 .crm-manager-message.error { color: #9b2226; }
 @media (min-width: 700px) { .crm-manager-login, .crm-manager-panel { padding: 1.5rem; } .crm-manager-counts { grid-template-columns: repeat(4, 1fr); } .crm-manager-filters { grid-template-columns: 2fr 1fr 1fr auto; align-items: end; } .crm-manager-coupon-filter { grid-template-columns: 2fr 1fr auto; } }
+.crm-manager .crm-jalali-picker-host { display: block; position: relative; }
+.crm-manager .crm-jalali-toggle { display: none; }
+.crm-manager .crm-jalali-panel { position: absolute; top: 100%; right: 0; z-index: 100; width: min(310px, calc(100vw - 36px)); padding: 12px; background: #fff; border: 1px solid #a7b3c1; border-radius: 8px; box-shadow: 0 10px 26px #0d284633; direction: rtl; }
+.crm-manager .crm-jalali-header, .crm-manager .crm-jalali-footer { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.crm-manager .crm-jalali-header { margin-bottom: 8px; }
+.crm-manager .crm-jalali-days { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; gap: 2px; }
+.crm-manager .crm-jalali-days span { padding: 5px 0; }
+.crm-manager .crm-jalali-footer { margin-top: 10px; }
+.crm-manager .crm-jalali-footer input { width: 120px; padding: 5px; }
+.crm-manager .crm-jalali-panel button { padding: 5px; border: 1px solid #dce2e8; border-radius: 5px; background: #fff; color: #0d2846; }
+.crm-manager .crm-jalali-panel button:hover, .crm-manager .crm-jalali-panel button:focus-visible, .crm-manager .crm-jalali-panel button.selected { background: #0d2846; border-color: #0d2846; color: #fff; }
+.crm-manager .crm-jalali-footer button { background: #0d2846; color: #fff; padding: 6px 12px; }
+.crm-manager .crm-jalali-title { display: flex; align-items: center; gap: 4px; }
+.crm-manager .crm-jalali-panel .crm-jalali-title button { border-color: transparent; font-weight: 700; }
+.crm-manager .crm-jalali-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.crm-manager .crm-jalali-list button { padding: 10px 4px; }
+.crm-manager .crm-jalali-footer span { font-size: .85rem; }
+.crm-manager-auto-approve { position: relative; display: inline-flex; align-items: center; gap: .6rem; margin: 0 0 1rem; }
+.crm-manager-auto-approve label { margin: 0; font-weight: 600; cursor: pointer; }
+.crm-manager button.crm-manager-switch, .crm-manager button.crm-manager-switch:hover, .crm-manager button.crm-manager-switch:focus-visible { position: relative; flex: 0 0 auto; width: 46px; height: 26px; padding: 0; border: 0; border-radius: 999px; background: #8b99a8; transition: background .2s; }
+.crm-manager button.crm-manager-switch::after { content: ""; position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px #0d284655; transition: transform .2s; }
+.crm-manager button.crm-manager-switch[aria-checked="true"], .crm-manager button.crm-manager-switch[aria-checked="true"]:hover, .crm-manager button.crm-manager-switch[aria-checked="true"]:focus-visible { background: #16703e; }
+.crm-manager button.crm-manager-switch[aria-checked="true"]::after { transform: translateX(-20px); }
+.crm-manager button.crm-manager-switch:focus-visible { outline: 2px solid #e8cd8f; outline-offset: 2px; }
+.crm-manager-tooltip { position: absolute; z-index: 20; top: calc(100% + 8px); right: 0; width: max-content; max-width: min(320px, calc(100vw - 48px)); padding: .6rem .8rem; border-radius: 8px; background: #0d2846; color: #fff; font-size: .9rem; line-height: 1.7; box-shadow: 0 6px 20px #0d284655; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .15s; }
+.crm-manager-tooltip::before { content: ""; position: absolute; bottom: 100%; right: 14px; border: 6px solid transparent; border-bottom-color: #0d2846; }
+.crm-manager-auto-approve:hover .crm-manager-tooltip, .crm-manager-switch:focus-visible ~ .crm-manager-tooltip { opacity: 1; visibility: visible; }
