@@ -2,9 +2,9 @@
 
 /**
  * Plugin Name: Coupon Request Manager
- * Description: Frontend coupon request system with OTP SMS integration (Melipayamak) and admin management.
+ * Description: Frontend coupon request system with OTP SMS integration (Melipayamak), admin management and event manager login and dashboard panel.
  * Version:     1.0.4
- * Author:      Coupon Request Manager
+ * Author:      Nifa-codes
  * Text Domain: coupon-request-manager
  */
 
